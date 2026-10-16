@@ -1,0 +1,18 @@
+[
+  {
+    "recipient_id": "R-1",
+    "organization_name": "Community Shelter",
+    "accepted_food_types": ["prepared_meals", "produce", "canned_goods"],
+    "capacity": 40,
+    "area": "Central",
+    "closes_at": "2026-10-13T13:00:00+00:00"
+  },
+  {
+    "recipient_id": "R-2",
+    "organization_name": "North Community Pantry",
+    "accepted_food_types": ["bakery", "produce"],
+    "capacity": 50,
+    "area": "North",
+    "closes_at": "2026-10-13T11:45:00+00:00"
+  }
+]

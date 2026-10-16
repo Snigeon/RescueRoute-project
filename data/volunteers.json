@@ -1,0 +1,18 @@
+[
+  {
+    "volunteer_id": "V-1",
+    "vehicle_capacity": 50,
+    "area": "Central",
+    "available_from": "2026-10-13T10:00:00+00:00",
+    "available_until": "2026-10-13T13:00:00+00:00",
+    "max_pickups": 3
+  },
+  {
+    "volunteer_id": "V-2",
+    "vehicle_capacity": 20,
+    "area": "North",
+    "available_from": "2026-10-13T10:00:00+00:00",
+    "available_until": "2026-10-13T11:30:00+00:00",
+    "max_pickups": 2
+  }
+]
