@@ -29,6 +29,8 @@ def load_json_file(path):
 
     try:
         text = path.read_text(encoding="utf-8-sig")
+    except FileNotFoundError as error:
+        raise ValueError(f"{path} does not exist") from error
     except (OSError, UnicodeDecodeError) as error:
         raise ValueError(f"{path} is not a valid json file") from error
     if not text.strip():
