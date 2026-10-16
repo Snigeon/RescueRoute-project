@@ -31,16 +31,7 @@ def create_state(recipients, volunteers):
     }
 
 def greedy_priority(donation, state, volunteers, now):
-    """The urgency-first priority key. Smallest key is scheduled first.
 
-    1. available slack - minutes between the earliest delivery any same-area
-       volunteer could achieve and the donation's expiry. This is the real
-       measure of how close the food is to being lost, because it accounts for
-       when a volunteer is actually free.
-    2. earlier absolute expiry.
-    3. larger quantity.
-    4. arrival order, which needs no term because sorted() is stable.
-    """
     earliest_pickup = max(now, donation.ready_at)
     free_times = [
         max(earliest_pickup, volunteer.available_from,
@@ -122,11 +113,7 @@ def run_greedy(donations, recipients, volunteers, now):
     return schedule(sorted_donations, recipients, volunteers, now, STRATEGY_GREEDY)
 
 def run_both(donations, recipients, volunteers, now):
-    """Run both strategies over the same input data.
 
-    Each run builds its own state, so neither strategy inherits capacity,
-    pickups or volunteer time that the other one spent.
-    """
     return {
         STRATEGY_FIFO: run_fifo(donations, recipients, volunteers, now),
         STRATEGY_GREEDY: run_greedy(donations, recipients, volunteers, now),
