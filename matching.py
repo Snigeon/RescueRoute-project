@@ -4,6 +4,16 @@ from models import Volunteer, Recipient
 
 TRIP_TIME = timedelta(minutes=15)
 
+def format_minutes(minutes):
+    minutes = int(round(minutes))
+    if minutes < 60:
+        return f"{minutes} minutes"
+    hours, rest = divmod(minutes, 60)
+    return f"{hours} h {rest} min" if rest else f"{hours} h"
+
+def format_time(value):
+    return value.isoformat(timespec="minutes")
+
 def find_match(donation, recipients, volunteers, state, now):
     if donation.expires_at <= now:
         return None, (
