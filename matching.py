@@ -14,7 +14,7 @@ def format_minutes(minutes):
 def format_time(value):
     return value.isoformat(timespec="minutes")
 
-def find_match(donation, recipients, volunteers, state, now):
+def find_matches(donation, recipients, volunteers, state, now):
     if donation.expires_at <= now:
         return None, (
             f"Donation {donation.donation_id} is already expired"
