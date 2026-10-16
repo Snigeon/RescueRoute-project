@@ -13,17 +13,19 @@ def format_time(value):
     return value.isoformat(timespec="minutes")
 
 def find_matches(donation, recipients, volunteers, state, now):
-    if donation.expires_at <= now:
-        return None, (
-            f"Donation {donation.donation_id} is already expired"
-            f"expiry was {donation.expires_at.isoformat(timespec='minutes')}"
-        )
     problems = []
+
+    if donation.expires_at <= now:
+        return [], [
+            f"the donation expired at {format_time(donation.expires_at)}, "
+            f"before the simulation start {format_time(now)}"
+        ]
+
     if not recipients:
-        return None, f"Donation {donation.donation_id} has no recipients"
+        return [], ["no recipients were loaded"]
 
     if not volunteers:
-        return None, f"Donation {donation.donation_id} has no volunteers"
+        return [], ["no volunteers were loaded"]
 
     matches = []
 
@@ -38,15 +40,15 @@ def find_matches(donation, recipients, volunteers, state, now):
 
         if recipient.area != donation.pickup_area:
             problems.append(
-                f"{recipient.organization_name} is outside pickup area"
-                f"{donation.pickup_area}"
+                f"{recipient.organization_name} is in {recipient.area}, "
+                f"not the {donation.pickup_area} pickup area"
             )
             continue
 
         if remaining < donation.quantity:
             problems.append(
-                f"{recipient.organization_name} has {remaining} remaining"
-                f",but the donation needs {donation.quantity}"
+                f"{recipient.organization_name} has {remaining} servings of "
+                f"capacity left but the donation needs {donation.quantity}"
             )
             continue
 
@@ -55,21 +57,24 @@ def find_matches(donation, recipients, volunteers, state, now):
 
             if volunteer.area != donation.pickup_area:
                 problems.append(
-                    f"volunteer {volunteer_id} does not accept is outside pickup area"
-                    f"{donation.pickup_area}"
+                    f"volunteer {volunteer_id} covers {volunteer.area}, "
+                    f"not the {donation.pickup_area} pickup area"
                 )
                 continue
 
             if volunteer.vehicle_capacity < donation.quantity:
                 problems.append(
-                    f"volunteer{volunteer_id} capacity{volunteer.vehicle_capacity} is less than {donation.quantity}"
+                    f"volunteer {volunteer_id} can carry "
+                    f"{volunteer.vehicle_capacity} servings but the donation "
+                    f"is {donation.quantity}"
                 )
                 continue
 
             if state["pickups_used"][volunteer_id] >= volunteer.max_pickups:
                 problems.append(
-                    f"volunteer {volunteer_id} has reached maximum of"
-                    f"{volunteer.vehicle_capacity} pickups"
+                    f"volunteer {volunteer_id} has already used "
+                    f"{state['pickups_used'][volunteer_id]} of "
+                    f"{volunteer.max_pickups} pickups"
                 )
                 continue
 
@@ -86,19 +91,22 @@ def find_matches(donation, recipients, volunteers, state, now):
             if delivery_time >= donation.expires_at:
                 time_problems.append(
                     f"a trip with {volunteer_id} to {recipient.organization_name} "
-                    "cannot finish before the donation's simulated expiry"
+                    f"cannot finish before the donation expires at "
+                    f"{format_time(donation.expires_at)}"
                 )
 
             if delivery_time >= recipient.closes_at:
                 time_problems.append(
-                    f"a trip with {volunteer_id} cannot reach {recipient.organization_name} "
-                    f"before its closing time"
+                    f"a trip with {volunteer_id} cannot reach "
+                    f"{recipient.organization_name} before it closes at "
+                    f"{format_time(recipient.closes_at)}"
                 )
 
             if delivery_time > volunteer.available_until:
                 time_problems.append(
                     f"a trip to {recipient.organization_name} cannot finish "
-                    f"within volunteer {volunteer_id}'s availability"
+                    f"within volunteer {volunteer_id}'s availability, which ends "
+                    f"at {format_time(volunteer.available_until)}"
                 )
 
             if time_problems:
@@ -118,34 +126,26 @@ def find_matches(donation, recipients, volunteers, state, now):
                 "closes_at": recipient.closes_at,
                 "available_until": volunteer.available_until,
                 "slack_minutes": (
-                                 donation.expires_at - pickup_time
-                 ).total_seconds() / 60.0 - TRIP_TIME.total_seconds() / 60.0,
+                    donation.expires_at - pickup_time
+                ).total_seconds() / 60.0 - TRIP_TIME.total_seconds() / 60.0,
             })
 
-            return matches, problems
+    return matches, problems
 
 def best_match(matches):
-
-        return sorted(
-            matches,
-            key=lambda match: (
-                match["delivery_time"],
-                match["remaining_capacity"],
-                match["closes_at"],
-                match["vehicle_capacity"],
-                match["recipient_id"],
-                match["volunteer_id"],
-            ),
-        )
+    return sorted(
+        matches,
+        key=lambda match: (
+            match["delivery_time"],
+            match["remaining_capacity"],
+            match["closes_at"],
+            match["vehicle_capacity"],
+            match["recipient_id"],
+            match["volunteer_id"],
+        ),
+    )
 
 def find_match(donation, recipients, volunteers, state, now, strategy="first"):
-    """Return (match, reason) for a single donation.
-
-    ``strategy`` only selects among the feasible candidates: "first" keeps
-    input order, which is the FIFO baseline, and "best" applies
-    :func:`best_match`, which is the greedy urgency-first strategy. Every hard
-    constraint is identical either way.
-    """
     if not recipients:
         return None, f"Donation {donation.donation_id} has no recipients"
 
@@ -156,10 +156,10 @@ def find_match(donation, recipients, volunteers, state, now, strategy="first"):
 
     if not matches:
         reason = (
-                f"Donation {donation.donation_id} could not be assigned. "
-                "No recipient-volunteer pair satisfied all constraints: "
-                + "; ".join(dict.fromkeys(problems))
-                + "."
+            f"Donation {donation.donation_id} could not be assigned. "
+            "No recipient-volunteer pair satisfied all constraints: "
+            + "; ".join(dict.fromkeys(problems))
+            + "."
         )
         return None, reason
 
