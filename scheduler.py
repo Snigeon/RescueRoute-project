@@ -53,6 +53,10 @@ def schedule(donations, recipients, volunteers, now, strategy=STRATEGY_FIFO):
     state = create_state(recipients, volunteers)
     results = []
 
+    priorities = {
+        d.donation_id: greedy_priority(d, state, volunteers, now)[0] for d in donations
+    }
+
     total = len(donations)
     for position, donation in enumerate(donations, start=1):
         match, reason = find_match(
@@ -61,16 +65,11 @@ def schedule(donations, recipients, volunteers, now, strategy=STRATEGY_FIFO):
         )
 
         if strategy == STRATEGY_GREEDY:
-            slack = greedy_priority(donation, state, volunteers, now)[0]
+            slack = format_minutes(priorities[donation.donation_id])
             order = (
                 f"Greedy urgency-first considered this donation at position "
-                f"{position} of {total} because it had {format_minutes(slack)} "
-                f"of available slack until expiry, less than the donations "
-                f"after it and more than the ones before it. "
-            ) if position > 1 else (
-                f"Greedy urgency-first considered this donation first of "
-                f"{total} because it had the least available slack, "
-                f"{format_minutes(slack)} until expiry. "
+                f"{position} of {total} because it had {slack} of available "
+                f"slack until expiry. "
             )
         else:
             order = (
