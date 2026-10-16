@@ -111,7 +111,18 @@ def find_matches(donation, recipients, volunteers, state, now):
                 "volunteer_id": volunteer_id,
                 "pickup_time": pickup_time,
                 "delivery_time": delivery_time,
-            }
+                "remaining_capacity": remaining,
+                "vehicle_capacity": volunteer.vehicle_capacity,
+                "pickups_used": state["pickups_used"][volunteer_id],
+                "max_pickups": volunteer.max_pickups,
+                "closes_at": recipient.closes_at,
+                "available_until": volunteer.available_until,
+                "slack_minutes": (
+                                 donation.expires_at - pickup_time
+                 ).total_seconds() / 60.0 - TRIP_TIME.total_seconds() / 60.0,
+            })
+
+            return matches, problems
 
             reason = (
                 f"Donation {donation.donation_id} from {donation.donor_name} was "
