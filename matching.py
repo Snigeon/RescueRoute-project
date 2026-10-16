@@ -66,7 +66,7 @@ def find_matches(donation, recipients, volunteers, state, now):
                 )
                 continue
 
-            if state["pickups_used"][volunteer_id] >= volunteer.vehicle_capacity:
+            if state["pickups_used"][volunteer_id] >= volunteer.max_pickups:
                 problems.append(
                     f"volunteer {volunteer_id} has reached maximum of"
                     f"{volunteer.vehicle_capacity} pickups"
