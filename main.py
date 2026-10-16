@@ -3,8 +3,14 @@ import sys
 from pathlib import Path
 
 from data_loader import load_data,parse_time
-from matching import TRIP_TIME
-from scheduler import run_fifo, run_greedy
+from reports import (
+    URGENT_MINUTES as DEFAULT_URGENT_MINUTES,
+    compare,
+    compute_metrics,
+    render_report,
+    write_outputs,
+)
+from scheduler import run_fifo, run_greedy, run_both, STRATEGY_FIFO, STRATEGY_GREEDY
 
 DEFAULT_NOW = "2026-10-13T10:00:00+00:00"
 DEFAULT_DATA_DIR = Path(__file__).resolve().parent / "data"
