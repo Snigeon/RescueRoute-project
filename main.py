@@ -99,10 +99,22 @@ def main(argv=None) -> int:
         for strategy, result in results.items()
     }
 
-    console_text = render_console(results, metrics, str(args.data_dir), now, urgent_minutes)
+    comparison = None
+    if args.strategy == "compare":
+        comparison = compare(
+            results[STRATEGY_FIFO], results[STRATEGY_GREEDY], donations
+        )
+        for key in ("urgent_rescue_rate", "recipient_utilization",
+                    "volunteer_utilization"):
+            comparison[key] = (
+                metrics[STRATEGY_GREEDY][key] - metrics[STRATEGY_FIFO][key]
+            )
 
+    report_text = render_report(
+        results, metrics, str(args.data_dir), now, urgent_minutes, comparison
+    )
     if not args.quiet:
-        print(console_text)
+        print(report_text)
 
     if args.output_dir:
         try:
@@ -113,7 +125,7 @@ def main(argv=None) -> int:
                 str(args.data_dir),
                 now,
                 urgent_minutes,
-                console_text,
+                comparison,
             )
         except OSError as error:
             print(f"error: could not write output: {error}", file=sys.stderr)
