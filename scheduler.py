@@ -12,7 +12,7 @@ def create_state(recipients, volunteers):
         raise ValueError("Volunteer ids must unique")
     if any(r.capacity < 0 for r in recipients):
         raise ValueError("Recipient capacity must be positive")
-    if any(v.capacity < 0 for v in volunteers):
+    if any(v.vehicle_capacity < 0 for v in volunteers):
         raise ValueError("Volunteer capacity must be positive")
 
     return {
@@ -49,7 +49,6 @@ def schedule(donations, recipients, volunteers, now):
 
         recipient_id = match["recipient_id"]
         volunteer_id = match["volunteer_id"]
-
         results.append(Assignment(
             donation_id=donation.donation_id,
             status = "assigned",
@@ -57,9 +56,18 @@ def schedule(donations, recipients, volunteers, now):
             recipient_id = recipient_id,
             volunteer_id = volunteer_id,
             scheduled_at = match["pickup_time"],
-            delivery_at = match["delivery)time"],))
+            delivery_at = match["delivery_time"],))
 
         state["remaining_capacity"][recipient_id] -= donation.quantity
         state["pickups_used"][volunteer_id] += 1
         state["next_available"][volunteer_id] = match["delivery_time"]
     return results
+
+def run_fifo(donations, recipients, volunteers, now):
+    results = schedule(donations, recipients, volunteers, now)
+    for result in results:
+        result.reason = "FIFO uses input arrival order. " + result.reason
+    return results
+
+def run_greedy(donations, recipients, volunteers, now):
+    sorted_recipients = sorted(recipients, key=lambda r: r.)

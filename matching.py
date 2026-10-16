@@ -1,5 +1,7 @@
 from datetime import timedelta
 
+from models import Volunteer, Recipient
+
 TRIP_TIME = timedelta(minutes=15)
 
 def find_match(donation, recipients, volunteers, state, now):
@@ -54,17 +56,17 @@ def find_match(donation, recipients, volunteers, state, now):
                 )
                 continue
 
-            if state["pickups_used"][volunteer_id] >= volunteer.maximum_capacity:
+            if state["pickups_used"][volunteer_id] >= volunteer.vehicle_capacity:
                 problems.append(
                     f"volunteer {volunteer_id} has reached maximum of"
-                    f"{volunteer.maximum_capacity} pickups"
+                    f"{volunteer.vehicle_capacity} pickups"
                 )
                 continue
 
             pickup_time = max(
                 now,
                 donation.ready_at,
-                volunteer.available_at,
+                volunteer.available_from,
                 state["next_available"][volunteer_id],
             )
 
@@ -77,7 +79,7 @@ def find_match(donation, recipients, volunteers, state, now):
                     "cannot finish before the donation's simulated expiry"
                 )
 
-            if delivery_time >= recipient.closing_at:
+            if delivery_time >= recipient.closes_at:
                 time_problems.append(
                     f"a trip with {volunteer_id} cannot reach {recipient.organization_name} "
                     f"before its closing time"
@@ -90,13 +92,13 @@ def find_match(donation, recipients, volunteers, state, now):
                 )
 
             if time_problems:
-                problems.append(time_problems)
+                problems.extend(time_problems)
                 continue
 
 
             match = {
-                "recipients_id": recipients.recipient_id,
-                "volunteer_id": volunteers.volunteer_id,
+                "recipient_id": recipient.recipient_id,
+                "volunteer_id": volunteer_id,
                 "pickup_time": pickup_time,
                 "delivery_time": delivery_time,
             }

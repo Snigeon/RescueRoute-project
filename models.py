@@ -12,7 +12,6 @@ class Donation:
     expires_at: datetime
     pickup_area: str
     ready_at: datetime
-    arrival_index: int
 
 @dataclass
 class Recipient:
@@ -21,7 +20,7 @@ class Recipient:
     accepted_food_types: list[str]
     capacity: int
     area: str
-    closest_at: datetime
+    closes_at: datetime
 
 @dataclass
 class Volunteer:
