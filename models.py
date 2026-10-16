@@ -18,7 +18,7 @@ class Donation:
 class Recipient:
     recipient_id: str
     organization_name: str
-    accepted_food_types: set[str]
+    accepted_food_types: list[str]
     capacity: int
     area: str
     closest_at: datetime
@@ -34,10 +34,10 @@ class Volunteer:
 
 @dataclass
 class Assignment:
-    volunteer_id: str
-    quantity: int
+    donation_id: str
+    status: str
     reason: str
-    donation_id: str | None = None
     recipient_id: str | None = None
-    delivery_at: datetime | None = None
+    volunteer_id: str | None = None
     scheduled_at: datetime | None = None
+    delivery_at: datetime | None = None

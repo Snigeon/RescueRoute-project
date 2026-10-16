@@ -27,3 +27,39 @@ def create_state(recipients, volunteers):
         },
     }
 
+def schedule(donations, recipients, volunteers, now):
+    donation_ids = [d.donation_id for d in donations]
+    if len(donation_ids) != len(set(donation_ids)):
+        raise ValueError("Donation ids must unique")
+    if any(d.quantity < 0 for d in donations):
+        raise ValueError("Donation quantity must be positive")
+
+    state = create_state(recipients, volunteers)
+    results = []
+
+    for position, donation in enumerate(donations, start=1):
+        match, reason = find_match(donation, recipients, volunteers, state, now)
+        reason = f"Processing position {position}: {reason}"
+
+        if match is None:
+            results.append(Assignment(donation_id=donation.donation_id,
+                           status = "unassigned",
+                           reason = reason))
+            continue
+
+        recipient_id = match["recipient_id"]
+        volunteer_id = match["volunteer_id"]
+
+        results.append(Assignment(
+            donation_id=donation.donation_id,
+            status = "assigned",
+            reason = reason,
+            recipient_id = recipient_id,
+            volunteer_id = volunteer_id,
+            scheduled_at = match["pickup_time"],
+            delivery_at = match["delivery)time"],))
+
+        state["remaining_capacity"][recipient_id] -= donation.quantity
+        state["pickups_used"][volunteer_id] += 1
+        state["next_available"][volunteer_id] = match["delivery_time"]
+    return results
