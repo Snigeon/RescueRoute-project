@@ -1,7 +1,5 @@
 from datetime import timedelta
 
-from models import Volunteer, Recipient
-
 TRIP_TIME = timedelta(minutes=15)
 
 def format_minutes(minutes):
@@ -26,6 +24,8 @@ def find_matches(donation, recipients, volunteers, state, now):
 
     if not volunteers:
         return None, f"Donation {donation.donation_id} has no volunteers"
+
+    matches = []
 
     for recipient in recipients:
         remaining = state["remaining_capacity"][recipient.recipient_id]
@@ -105,9 +105,9 @@ def find_matches(donation, recipients, volunteers, state, now):
                 problems.extend(time_problems)
                 continue
 
-
-            match = {
+            matches.append({
                 "recipient_id": recipient.recipient_id,
+                "recipient_name": recipient.organization_name,
                 "volunteer_id": volunteer_id,
                 "pickup_time": pickup_time,
                 "delivery_time": delivery_time,
@@ -124,29 +124,63 @@ def find_matches(donation, recipients, volunteers, state, now):
 
             return matches, problems
 
-            reason = (
-                f"Donation {donation.donation_id} from {donation.donor_name} was "
-                f"assigned to {recipient.organization_name} with volunteer "
-                f"{volunteer_id} because the recipient accepts "
-                f"{donation.food_type}, has {remaining} servings of remaining "
-                f"capacity for {donation.quantity} servings, and the vehicle can "
-                f"carry {volunteer.vehicle_capacity} servings. All are in "
-                f"{donation.pickup_area}. Pickup is "
-                f"{pickup_time.isoformat(timespec='minutes')}; delivery is "
-                f"{delivery_time.isoformat(timespec='minutes')}, before simulated "
-                "expiry and closing, and within the volunteer's availability "
-                "and pickup limit."
-            )
+def best_match(matches):
 
-            return match, reason
+        return sorted(
+            matches,
+            key=lambda match: (
+                match["delivery_time"],
+                match["remaining_capacity"],
+                match["closes_at"],
+                match["vehicle_capacity"],
+                match["recipient_id"],
+                match["volunteer_id"],
+            ),
+        )
 
-    unique_problems = list(dict.fromkeys(problems))
+def find_match(donation, recipients, volunteers, state, now, strategy="first"):
+    """Return (match, reason) for a single donation.
+
+    ``strategy`` only selects among the feasible candidates: "first" keeps
+    input order, which is the FIFO baseline, and "best" applies
+    :func:`best_match`, which is the greedy urgency-first strategy. Every hard
+    constraint is identical either way.
+    """
+    if not recipients:
+        return None, f"Donation {donation.donation_id} has no recipients"
+
+    if not volunteers:
+        return None, f"Donation {donation.donation_id} has no volunteers"
+
+    matches, problems = find_matches(donation, recipients, volunteers, state, now)
+
+    if not matches:
+        reason = (
+                f"Donation {donation.donation_id} could not be assigned. "
+                "No recipient-volunteer pair satisfied all constraints: "
+                + "; ".join(dict.fromkeys(problems))
+                + "."
+        )
+        return None, reason
+
+    match = matches[0] if strategy == "first" else best_match(matches)[0]
 
     reason = (
-        f"Donation {donation.donation_id} could not be assigned."
-        "No recipient-volunteer pair satisfied all constraints: "
-        + "; ".join(unique_problems)
-        + "."
+        f"Donation {donation.donation_id} from {donation.donor_name} was "
+        f"assigned to {match['recipient_name']} with volunteer "
+        f"{match['volunteer_id']} because the recipient accepts "
+        f"{donation.food_type}, has {match['remaining_capacity']} servings of "
+        f"remaining capacity for {donation.quantity} servings, and the vehicle "
+        f"can carry {match['vehicle_capacity']} servings. All are in "
+        f"{donation.pickup_area}. Pickup is "
+        f"{format_time(match['pickup_time'])}; delivery is "
+        f"{format_time(match['delivery_time'])}, which is "
+        f"{format_minutes(match['slack_minutes'])} before the donation expires "
+        f"at {format_time(donation.expires_at)}, before "
+        f"{match['recipient_name']} closes at {format_time(match['closes_at'])}, "
+        f"and within volunteer {match['volunteer_id']}'s availability until "
+        f"{format_time(match['available_until'])} and pickup limit of "
+        f"{match['max_pickups']}."
     )
 
-    return None, reason
+    return match, reason
