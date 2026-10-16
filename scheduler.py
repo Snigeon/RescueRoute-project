@@ -31,7 +31,7 @@ def schedule(donations, recipients, volunteers, now):
     donation_ids = [d.donation_id for d in donations]
     if len(donation_ids) != len(set(donation_ids)):
         raise ValueError("Donation ids must unique")
-    if any(d.quantity < 0 for d in donations):
+    if any(d.quantity <= 0 for d in donations):
         raise ValueError("Donation quantity must be positive")
 
     state = create_state(recipients, volunteers)
@@ -70,4 +70,15 @@ def run_fifo(donations, recipients, volunteers, now):
     return results
 
 def run_greedy(donations, recipients, volunteers, now):
-    sorted_recipients = sorted(recipients, key=lambda r: r.)
+    sorted_donations = sorted(donations,key=lambda d: (d.expires_at, -d.quantity))
+
+    results = schedule(sorted_donations,recipients,volunteers,now)
+
+    for result in results:
+        result.reason = (
+            "Greedy prioritizes earlier expiry, then larger quantity, "
+            "then original arrival order. "
+            + result.reason
+        )
+
+    return results
